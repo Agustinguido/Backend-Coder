@@ -29,7 +29,7 @@ class ProductManager{
                 this.products.push({id: idAutoincremental,...newProduct});
             }        
         }else{
-            console.error("Debe tener todos los campos completos para agregarlo")
+            console.error("Debe tener todos los campos completos para agregarlo.")
         }
        
     }
