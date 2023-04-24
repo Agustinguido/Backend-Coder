@@ -1,5 +1,14 @@
-class Producto{    
-    constructor(title,description,price,thumbnail,code,stock){
+const fs = require('fs');
+const ruta = "./desafio2Archivo.txt";
+const crearArchivo = async (ruta) => {
+    if (!fs.existsSync(ruta)){
+        await fs.promises.writeFile(ruta, "[]")
+    }else if ((await fs.promises.readFile(ruta,"utf-8")).length==0){
+        await fs.promises.writeFile(ruta, "[]")
+    }
+}
+class Producto {
+    constructor(title, description, price, thumbnail, code, stock) {
         this.title = title;
         this.description = description;
         this.price = price;
@@ -10,51 +19,117 @@ class Producto{
 }
 
 
-class ProductManager{
-    constructor(){
-        this.products = [];
-    }    
-    addProduct(newProduct){          
-        //Reviso que tenga datos, ya que no puede agregar con un campo vacio
-        if ( toString(newProduct.id).length>0 && newProduct.title.length>0 && newProduct.description.length>0 && toString(newProduct.price).length>0 && newProduct.thumbnail.length>0 && newProduct.code.length>0 && toString(newProduct.stock).length>0){
-            //Utilicé el filter ya que con el "includes" no me dejaba ya que tengo objetos y no datos simples
-            if (this.products.filter(product=> product.code==newProduct.code).length > 0)
-            {
+class ProductManager {
+    constructor() {
+        this.path = ruta;
+    }
+    addProduct = async (newProduct) => {
+        if (toString(newProduct.id).length > 0 && newProduct.title.length > 0 && newProduct.description.length > 0 && toString(newProduct.price).length > 0 && newProduct.thumbnail.length > 0 && newProduct.code.length > 0 && toString(newProduct.stock).length > 0) {
+            let contenido = await fs.promises.readFile(this.path, "utf-8");
+            let arrayProductos = JSON.parse(contenido);
+            if (arrayProductos.filter(product => product.code == newProduct.code).length > 0) {
                 console.error("Ya existe el producto");
             }
             else 
             {
-                //En caso que no exista y sea un nuevo producto agrega el id automatico y el producto, para que si se ingresa un producto no valido no se agregue
-                const idAutoincremental = ProductManager.idAutomatico()
-                this.products.push({id: idAutoincremental,...newProduct});
-            }        
-        }else{
-            console.error("Debe tener todos los campos completos para agregarlo.")
-        }
-       
-    }
-    getProductos(){
-        return this.products;
-    }
-    getProductById(id){
-        //Me fijo si es diferente a undefined, ya que si es undefined no existe en el array, en caso de que exista lo devuelvo, en caso contrario devuelvo un error
-        if (this.products.find(product => product.id == id)!=undefined){
-            return this.products.find(product => product.id == id)
-        }else{
-            return "Product Not found";
-        }
-    }
-    //Hice una clase estatica para el id automatico, así no tengo que ingresarlo y es autoincremental 
+                let contenido = await fs.promises.readFile(this.path, "utf-8");
+                let aux = JSON.parse(contenido);
+                console.log()
+                if (aux.length>0){
+                    const idAutoincremental = aux[aux.length-1].id+1; //Esto para que sea incremental dependiendo del ultimo elemento
+                    aux.push({ id: idAutoincremental, ...newProduct });
+                    await fs.promises.writeFile(this.path, JSON.stringify(aux));
+                }
+                else{
+                    const idAutoincremental = 1;
+                    aux.push({ id: idAutoincremental, ...newProduct });
+                    await fs.promises.writeFile(this.path, JSON.stringify(aux));
+                }
 
-    static idAutomatico() {
-        if (!this.idAnterior) {
-          this.idAnterior = 1
+            }
+        } else {
+            console.error("Debe tener todos los campos completos para agregarlo")
         }
-        else {
-          this.idAnterior++
+    }
+
+    getAllProducts= async()=> {
+        let contenido = await fs.promises.readFile(this.path, 'utf-8')  
+        let aux = JSON.parse(contenido)
+        return aux;   
+    }
+    updateProduct = async({id, title, description, price, thumbnail, code, stock})  => {
+        let contenido = await fs.promises.readFile(this.path, 'utf-8')  
+        let aux = JSON.parse(contenido)
+        if(aux.some(product=> product.id === id)) {
+            let pos = aux.findIndex(product => product.id === id)
+            if (title!=undefined){
+                if (title.length>0)
+                {
+                    aux[pos].title = title;
+                }
+            }
+            if (description!=undefined){
+                if (description.length>0)
+                {
+                    aux[pos].description = description;
+                }
+            }
+            if (price!=undefined){
+                if (price.length>0)
+                {
+                    aux[pos].price = parseFloat(price);
+                }
+            }
+            if (thumbnail!=undefined){
+                if (thumbnail.length>0)
+                {
+                    aux[pos].thumbnail = thumbnail;
+                }
+            }
+            if (code!=undefined){
+                if (code.length>0)
+                {
+                    aux[pos].code = code;
+                }
+            }
+            if (stock!=undefined){
+                if (stock.length>0)
+                {
+                    aux[pos].stock = parseInt(stock);
+                }
+            }
+            await fs.promises.writeFile(this.path, JSON.stringify(aux))
+            console.log("Producto actualizado exitosamente");
+        } else {
+            console.log( "Producto no encontrado para actualizar")
         }
-        return this.idAnterior
-      }
+    
+    }
+    getProductById= async(id)=> {
+        let contenido = await fs.promises.readFile(this.path, 'utf-8')  
+        let aux = JSON.parse(contenido)
+        if(aux.some(product=> product.id === id)) 
+        {
+            let pos = aux.findIndex(product => product.id === id)
+            return aux[pos];
+        }else{
+            return "No se encontró el producto que desea ver"
+        }        
+    }
+
+    deleteProductById= async(id)=> {
+        let contenido = await fs.promises.readFile(this.path, 'utf-8')
+        let aux = JSON.parse(contenido)
+        if(aux.some(product=> product.id === id)) 
+        {
+            const arraySinElIdSeleccionado = aux.filter(product => product.id != id);
+            await fs.promises.writeFile(this.path, JSON.stringify(arraySinElIdSeleccionado))
+            console.log("Producto eliminado exitosamente");           
+        }else{
+            console.error("No se encontró el producto que desea eliminar")
+        }        
+    }
+
 
 }
 
@@ -69,31 +144,19 @@ const productoVacio=new Producto("","","","","","");
 const productoPrueba=new Producto("producto prueba","Este es un producto prueba",200,"Sin Imagen","abc123",25);
 
 
+
 //Creo un product manager
-productMaganer=new ProductManager()
+productManager = new ProductManager()
 
-//Llamo al procedimiento para mostrar el array vacio
-console.log(productMaganer.getProductos())
-
-//Agrego los productos al product manager
-productMaganer.addProduct(producto1);
-productMaganer.addProduct(producto2);
-productMaganer.addProduct(producto3);
-productMaganer.addProduct(producto4);
-productMaganer.addProduct(producto5);
-
-//Esto de abajo dará un mensaje que dice "Debe tener todos los campos completos para agregarlo" ya que es un objeto "vacio"
-productMaganer.addProduct(productoVacio);
-
-productMaganer.addProduct(productoPrueba);
-
-
-
-//Realizo las pruebas del tp
-//Listo todos los productos
-console.log(productMaganer.getProductos())
-//Intento agregar nuevamente el mismo producto para probar que si está repetido el code no lo agrega, se verá el "ya existe el producto" en la consola
-productMaganer.addProduct(productoPrueba);
-
-console.log(productMaganer.getProductById(3)); 
-console.log(productMaganer.getProductById(654966)); //Devuelve undefined aparte de el mensaje ya que no existe y el return no tiene nada, por lo tanto al querer mostrar algo que no tiene nada, da undefined (tambien podria devolver null al ponerle return null pero lo dejé asi ya que es practicamente lo mismo)
+const tests = async () => {
+    await crearArchivo(ruta); //Es para que si no tiene el array vacio al inicio se lo ponga así evitamos errores, y para asegurarnos que existe el archivo
+    console.log(await productManager.getAllProducts()); //Debe aparecer []
+    await productManager.addProduct(productoPrueba);
+    console.log(await productManager.getAllProducts()); //Debe aparecer el producto prueba (o todos en caso de haber mas)
+    console.log(await productManager.getProductById(1)); //Debe aparecer el producto con el id 1 (el de prueba), en caso de no existir tira error
+    await productManager.updateProduct({id: 1, title:"Prueba cambiando titulo y descripcion del elemento 1", description:"Exito"}) //Debe actualizar los campos que están solamente, sin perder el id (en caso de querer cambiar todos, tambien se puede)
+    console.log(await productManager.getProductById(1));
+    await productManager.deleteProductById(1); //Elimina el producto que corresponde con el id 1 (el de prueba), en caso de no existir tira error
+    
+}
+tests();
